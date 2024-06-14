@@ -242,6 +242,7 @@ func (o *Operator) Start(ctx context.Context) {
 	}()
 	if options.FromContext(ctx).DisableWebhook {
 		log.FromContext(ctx).Info("webhook disabled")
+		webhooks.Start(ctx, o.GetConfig(), webhooks.NewConfigValidationWebhook)
 	} else {
 		wg.Add(1)
 		go func() {

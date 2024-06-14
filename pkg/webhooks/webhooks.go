@@ -39,9 +39,11 @@ import (
 	"knative.dev/pkg/webhook/certificates"
 	"knative.dev/pkg/webhook/configmaps"
 	"knative.dev/pkg/webhook/resourcesemantics"
+	"knative.dev/pkg/webhook/resourcesemantics/conversion"
 	"knative.dev/pkg/webhook/resourcesemantics/validation"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
+	v1 "sigs.k8s.io/karpenter/pkg/apis/v1"
 	"sigs.k8s.io/karpenter/pkg/apis/v1beta1"
 	"sigs.k8s.io/karpenter/pkg/operator/logging"
 	"sigs.k8s.io/karpenter/pkg/operator/options"
@@ -54,6 +56,10 @@ var (
 		v1beta1.SchemeGroupVersion.WithKind("NodePool"):  &v1beta1.NodePool{},
 		v1beta1.SchemeGroupVersion.WithKind("NodeClaim"): &v1beta1.NodeClaim{},
 	}
+	ConversionResource = map[schema.GroupKind]conversion.GroupKindConversion{
+		{Group: v1.SchemeGroupVersion.Group, Kind: "NodePool"}:  conversion.GroupKindConversion{},
+		{Group: v1.SchemeGroupVersion.Group, Kind: "NodeClaim"}: conversion.GroupKindConversion{},
+	}
 )
 
 func NewWebhooks() []knativeinjection.ControllerConstructor {
@@ -61,6 +67,7 @@ func NewWebhooks() []knativeinjection.ControllerConstructor {
 		certificates.NewController,
 		NewCRDValidationWebhook,
 		NewConfigValidationWebhook,
+		NewCRDConversionWebhook,
 	}
 }
 
@@ -71,6 +78,14 @@ func NewCRDValidationWebhook(ctx context.Context, _ configmap.Watcher) *controll
 		Resources,
 		func(ctx context.Context) context.Context { return ctx },
 		true,
+	)
+}
+
+func NewCRDConversionWebhook(ctx context.Context, _ configmap.Watcher) *controller.Impl {
+	return conversion.NewConversionController(ctx,
+		"/conversion/karpetner.sh",
+		ConversionResource,
+		func(ctx context.Context) context.Context { return ctx },
 	)
 }
 

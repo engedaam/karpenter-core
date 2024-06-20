@@ -23,7 +23,13 @@ import (
 
 	"github.com/samber/lo"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/rest"
 	"knative.dev/pkg/apis"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/karpenter/pkg/apis/v1beta1"
 )
 
@@ -32,6 +38,29 @@ func (in *NodePool) ConvertTo(ctx context.Context, to apis.Convertible) error {
 	sink := to.(*v1beta1.NodePool)
 	sink.Name = in.Name
 	sink.UID = in.UID
+
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		return err
+	}
+	mgr, err := ctrl.NewManager(config, manager.Options{})
+	if err != nil {
+		return err
+	}
+
+	nodeclass := &unstructured.Unstructured{}
+	ncGVK := schema.GroupVersionKind{
+		Group:   "karpenter.k8s.aws",
+		Version: "v1",
+		Kind:    "EC2NodeClass",
+	}
+	nodeclass.SetGroupVersionKind(ncGVK)
+	err = mgr.GetClient().Get(ctx, types.NamespacedName{Name: in.Spec.Template.Spec.NodeClassRef.Name}, nodeclass)
+	if err != nil {
+		return err
+	}
+	fmt.Println(nodeclass)
+	// sink.Spec.Template.Spec.Kubelet = nodeclass.Object["spec"]
 
 	// adding nodeclassRef
 	sink.Spec.Template.Spec.NodeClassRef = &v1beta1.NodeClassReference{
@@ -86,6 +115,27 @@ func (in *NodePool) ConvertFrom(ctx context.Context, from apis.Convertible) erro
 	sink := from.(*v1beta1.NodePool)
 	in.Name = sink.Name
 	in.UID = sink.UID
+
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		return err
+	}
+	mgr, err := ctrl.NewManager(config, manager.Options{})
+	if err != nil {
+		return err
+	}
+
+	nodeclass := &unstructured.Unstructured{}
+	ncGVK := schema.GroupVersionKind{
+		Group:   "karpenter.k8s.aws",
+		Version: "v1beta1",
+		Kind:    "EC2NodeClass",
+	}
+	nodeclass.SetGroupVersionKind(ncGVK)
+	err = mgr.GetClient().Get(ctx, types.NamespacedName{Name: sink.Spec.Template.Spec.NodeClassRef.Name}, nodeclass)
+	if err != nil {
+		return err
+	}
 
 	// adding nodeclassRef - updated for v1
 	in.Spec.Template.Spec.NodeClassRef = &NodeClassReference{

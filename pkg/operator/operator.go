@@ -123,6 +123,7 @@ func NewOperator() (context.Context, *Operator) {
 		SecretName:  fmt.Sprintf("%s-cert", options.FromContext(ctx).ServiceName),
 		GracePeriod: 5 * time.Second,
 	})
+	fmt.Printf("%s-cert", options.FromContext(ctx).ServiceName)
 
 	// Client Config
 	config := ctrl.GetConfigOrDie()
@@ -138,6 +139,7 @@ func NewOperator() (context.Context, *Operator) {
 	klog.SetLogger(logger)
 
 	log.FromContext(ctx).WithValues("version", Version).V(1).Info("discovered karpenter version")
+	log.FromContext(ctx).Info((options.FromContext(ctx).ServiceName))
 
 	// Manager
 	mgrOpts := ctrl.Options{
@@ -242,6 +244,7 @@ func (o *Operator) Start(ctx context.Context) {
 	}()
 	if options.FromContext(ctx).DisableWebhook {
 		log.FromContext(ctx).Info("webhook disabled")
+		// webhooks.Start(ctx, o.GetConfig(), webhooks.NewCRDConversionWebhook)
 	} else {
 		wg.Add(1)
 		go func() {

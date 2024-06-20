@@ -89,7 +89,7 @@ func NewCRDValidationWebhook(ctx context.Context, _ configmap.Watcher) *controll
 
 func NewCRDConversionWebhook(ctx context.Context, _ configmap.Watcher) *controller.Impl {
 	return conversion.NewConversionController(ctx,
-		"/conversion/karpetner.sh",
+		"/conversion/karpenter.sh",
 		ConversionResource,
 		func(ctx context.Context) context.Context { return ctx },
 	)

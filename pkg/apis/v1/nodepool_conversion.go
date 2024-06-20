@@ -18,6 +18,7 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -32,6 +33,17 @@ func (in *NodePool) ConvertTo(ctx context.Context, to apis.Convertible) error {
 	sink := to.(*v1beta1.NodePool)
 	sink.Name = in.Name
 	sink.UID = in.UID
+
+	// adding kubelet
+	stringKubelet, found := in.Annotations[V1Beta1KubeletConfiguration]
+	if found {
+		kublete := &v1beta1.KubeletConfiguration{}
+		err := json.Unmarshal([]byte(stringKubelet), kublete)
+		if err != nil {
+			return err
+		}
+		sink.Spec.Template.Spec.Kubelet = kublete
+	}
 
 	// adding nodeclassRef
 	sink.Spec.Template.Spec.NodeClassRef = &v1beta1.NodeClassReference{
@@ -87,6 +99,10 @@ func (in *NodePool) ConvertFrom(ctx context.Context, from apis.Convertible) erro
 	in.Name = sink.Name
 	in.UID = sink.UID
 
+	// adding template metadata
+	in.Spec.Template.ObjectMeta.Labels = sink.Spec.Template.Labels
+	in.Spec.Template.ObjectMeta.Labels = sink.Spec.Template.Annotations
+
 	// adding nodeclassRef - updated for v1
 	in.Spec.Template.Spec.NodeClassRef = &NodeClassReference{
 		Name:  sink.Spec.Template.Spec.NodeClassRef.Name,
@@ -126,9 +142,16 @@ func (in *NodePool) ConvertFrom(ctx context.Context, from apis.Convertible) erro
 	in.Spec.Limits = Limits(sink.Spec.Limits)
 	// adding weight
 	in.Spec.Weight = sink.Spec.Weight
+
+	// adding annoations
+	kubelet, err := json.Marshal(sink.Spec.Template.Spec.Kubelet)
+	if err != nil {
+		return err
+	}
 	in.Annotations = lo.Assign(sink.Annotations, map[string]string{
 		v1beta1.NodePoolHashAnnotationKey:        in.Hash(),
 		v1beta1.NodePoolHashVersionAnnotationKey: NodePoolHashVersion,
+		V1Beta1KubeletConfiguration:              string(kubelet),
 	})
 
 	return nil

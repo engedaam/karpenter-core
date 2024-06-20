@@ -57,8 +57,14 @@ var (
 		v1beta1.SchemeGroupVersion.WithKind("NodeClaim"): &v1beta1.NodeClaim{},
 	}
 	ConversionResource = map[schema.GroupKind]conversion.GroupKindConversion{
-		{Group: v1.SchemeGroupVersion.Group, Kind: "NodePool"}:  conversion.GroupKindConversion{},
-		{Group: v1.SchemeGroupVersion.Group, Kind: "NodeClaim"}: conversion.GroupKindConversion{},
+		{Group: v1.SchemeGroupVersion.Group, Kind: "NodePool"}: {
+			DefinitionName: "nodepools.karpenter.sh",
+			HubVersion:     "v1",
+			Zygotes: map[string]conversion.ConvertibleObject{
+				"v1":      &v1.NodePool{},
+				"v1beta1": &v1beta1.NodePool{},
+			},
+		},
 	}
 )
 
@@ -108,7 +114,6 @@ func Start(ctx context.Context, cfg *rest.Config, ctors ...knativeinjection.Cont
 	ctx, startInformers := knativeinjection.EnableInjectionOrDie(ctx, cfg)
 	cmw := sharedmain.SetupConfigMapWatchOrDie(ctx, logger)
 	controllers, webhooks := sharedmain.ControllersAndWebhooksFromCtors(ctx, cmw, ctors...)
-
 	// Many of the webhooks rely on configuration, e.g. configurable defaults, feature flags.
 	// So make sure that we have synchronized our configuration state before launching the
 	// webhooks, so that things are properly initialized.

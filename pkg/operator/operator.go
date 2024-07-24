@@ -28,6 +28,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	coordinationv1 "k8s.io/api/coordination/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 	"knative.dev/pkg/changeset"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -35,11 +36,12 @@ import (
 	crmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	"sigs.k8s.io/karpenter/pkg/operator/controller"
+	"sigs.k8s.io/karpenter/pkg/cloudprovider"
+	"sigs.k8s.io/karpenter/pkg/events"
 
 	"sigs.k8s.io/karpenter/pkg/metrics"
 
 	"github.com/samber/lo"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
@@ -58,7 +60,6 @@ import (
 	"github.com/go-logr/zapr"
 
 	"sigs.k8s.io/karpenter/pkg/apis/v1beta1"
-	"sigs.k8s.io/karpenter/pkg/events"
 	"sigs.k8s.io/karpenter/pkg/operator/injection"
 	"sigs.k8s.io/karpenter/pkg/operator/logging"
 	"sigs.k8s.io/karpenter/pkg/operator/options"
@@ -185,11 +186,11 @@ func NewOperator() (context.Context, *Operator) {
 	}
 	mgr, err := ctrl.NewManager(config, mgrOpts)
 	mgr = lo.Must(mgr, err, "failed to setup manager")
-	lo.Must0(mgr.GetFieldIndexer().IndexField(ctx, &v1.Pod{}, "spec.nodeName", func(o client.Object) []string {
-		return []string{o.(*v1.Pod).Spec.NodeName}
+	lo.Must0(mgr.GetFieldIndexer().IndexField(ctx, &corev1.Pod{}, "spec.nodeName", func(o client.Object) []string {
+		return []string{o.(*corev1.Pod).Spec.NodeName}
 	}), "failed to setup pod indexer")
-	lo.Must0(mgr.GetFieldIndexer().IndexField(ctx, &v1.Node{}, "spec.providerID", func(o client.Object) []string {
-		return []string{o.(*v1.Node).Spec.ProviderID}
+	lo.Must0(mgr.GetFieldIndexer().IndexField(ctx, &corev1.Node{}, "spec.providerID", func(o client.Object) []string {
+		return []string{o.(*corev1.Node).Spec.ProviderID}
 	}), "failed to setup node provider id indexer")
 	lo.Must0(mgr.GetFieldIndexer().IndexField(ctx, &v1beta1.NodeClaim{}, "status.providerID", func(o client.Object) []string {
 		return []string{o.(*v1beta1.NodeClaim).Status.ProviderID}
@@ -234,7 +235,7 @@ func (o *Operator) WithWebhooks(ctx context.Context, ctors ...knativeinjection.C
 	return o
 }
 
-func (o *Operator) Start(ctx context.Context) {
+func (o *Operator) Start(ctx context.Context, cp cloudprovider.CloudProvider) {
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
@@ -247,6 +248,9 @@ func (o *Operator) Start(ctx context.Context) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			// Taking the first supported NodeClass to be the default NodeClass
+			ctx = injection.WithNodeClasses(ctx, cp.GetSupportedNodeClasses())
+			ctx = injection.WithClient(ctx, o.GetClient())
 			webhooks.Start(ctx, o.GetConfig(), o.webhooks...)
 		}()
 	}

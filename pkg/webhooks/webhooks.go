@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/awslabs/operatorpkg/object"
 	"github.com/samber/lo"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -39,15 +40,39 @@ import (
 	"knative.dev/pkg/webhook/certificates"
 	"knative.dev/pkg/webhook/configmaps"
 	"knative.dev/pkg/webhook/resourcesemantics"
+	"knative.dev/pkg/webhook/resourcesemantics/conversion"
 	"knative.dev/pkg/webhook/resourcesemantics/validation"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	"sigs.k8s.io/karpenter/pkg/operator/injection"
 
+	v1 "sigs.k8s.io/karpenter/pkg/apis/v1"
 	"sigs.k8s.io/karpenter/pkg/apis/v1beta1"
 	"sigs.k8s.io/karpenter/pkg/operator/logging"
 	"sigs.k8s.io/karpenter/pkg/operator/options"
 )
 
 const component = "webhook"
+
+var (
+	ConversionResource = map[schema.GroupKind]conversion.GroupKindConversion{
+		object.GVK(&v1beta1.NodePool{}).GroupKind(): {
+			DefinitionName: "nodepools.karpenter.sh",
+			HubVersion:     "v1",
+			Zygotes: map[string]conversion.ConvertibleObject{
+				"v1":      &v1.NodePool{},
+				"v1beta1": &v1beta1.NodePool{},
+			},
+		},
+		object.GVK(&v1beta1.NodeClaim{}).GroupKind(): {
+			DefinitionName: "nodeclaims.karpenter.sh",
+			HubVersion:     "v1",
+			Zygotes: map[string]conversion.ConvertibleObject{
+				"v1":      &v1.NodeClaim{},
+				"v1beta1": &v1beta1.NodeClaim{},
+			},
+		},
+	}
+)
 
 var (
 	Resources = map[schema.GroupVersionKind]resourcesemantics.GenericCRD{
@@ -80,6 +105,19 @@ func NewConfigValidationWebhook(ctx context.Context, _ configmap.Watcher) *contr
 		"/validate/config.karpenter.sh",
 		configmap.Constructors{
 			knativelogging.ConfigMapName(): knativelogging.NewConfigFromConfigMap,
+		},
+	)
+}
+
+func NewCRDConversionWebhook(ctx context.Context, _ configmap.Watcher) *controller.Impl {
+	nodeclassCtx := injection.GetNodeClasses(ctx)
+	client := injection.GetClient(ctx)
+	return conversion.NewConversionController(
+		ctx,
+		"/conversion/karpenter.sh",
+		ConversionResource,
+		func(ctx context.Context) context.Context {
+			return injection.WithClient(injection.WithNodeClasses(ctx, nodeclassCtx), client)
 		},
 	)
 }

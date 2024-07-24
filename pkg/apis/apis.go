@@ -27,9 +27,15 @@ import (
 	"sigs.k8s.io/karpenter/pkg/utils/functional"
 )
 
+const (
+	Group              = "karpenter.sh"
+	CompatibilityGroup = "compatibility." + Group
+)
+
 var (
 	// Builder includes all types within the apis package
 	Builder = runtime.NewSchemeBuilder(
+		v1.SchemeBuilder.AddToScheme,
 		v1beta1.SchemeBuilder.AddToScheme,
 	)
 	// AddToScheme may be used to add all resources defined in the project to a Scheme

@@ -35,9 +35,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	crmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 
-	"sigs.k8s.io/karpenter/pkg/operator/controller"
 	"sigs.k8s.io/karpenter/pkg/cloudprovider"
 	"sigs.k8s.io/karpenter/pkg/events"
+	"sigs.k8s.io/karpenter/pkg/operator/controller"
 
 	"sigs.k8s.io/karpenter/pkg/metrics"
 

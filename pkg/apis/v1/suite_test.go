@@ -22,6 +22,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"sigs.k8s.io/karpenter/pkg/operator/scheme"
 
 	. "sigs.k8s.io/karpenter/pkg/utils/testing"

@@ -43,6 +43,7 @@ import (
 	"knative.dev/pkg/webhook/resourcesemantics/conversion"
 	"knative.dev/pkg/webhook/resourcesemantics/validation"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+
 	"sigs.k8s.io/karpenter/pkg/operator/injection"
 
 	v1 "sigs.k8s.io/karpenter/pkg/apis/v1"
@@ -86,6 +87,7 @@ func NewWebhooks() []knativeinjection.ControllerConstructor {
 		certificates.NewController,
 		NewCRDValidationWebhook,
 		NewConfigValidationWebhook,
+		NewCRDConversionWebhook,
 	}
 }
 

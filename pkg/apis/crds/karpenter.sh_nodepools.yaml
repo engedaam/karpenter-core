@@ -320,7 +320,6 @@ spec:
                               description: Requests describes the minimum required resources for the NodeClaim to launch
                               type: object
                           type: object
-                          maxProperties: 0
                         startupTaints:
                           description: |-
                             StartupTaints are taints that are applied to nodes upon startup which are expected to be removed automatically
@@ -420,20 +419,6 @@ spec:
                             If left undefined, the controller will wait indefinitely for pods to be drained.
                           pattern: ^([0-9]+(s|m|h))+$
                           type: string
-                        kubelet:
-                          properties:
-                            kubeReserved:
-                              additionalProperties:
-                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                            systemReserved:
-                              additionalProperties:
-                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                            evictionHard:
-                              additionalProperties:
-                                pattern: ^((\d{1,2}(\.\d{1,2})?|100(\.0{1,2})?)%||(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?)$
-                            evictionSoft:
-                              additionalProperties:
-                                pattern: ^((\d{1,2}(\.\d{1,2})?|100(\.0{1,2})?)%||(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?)$
                       required:
                         - nodeClassRef
                         - requirements
@@ -688,12 +673,26 @@ spec:
                         labels:
                           additionalProperties:
                             type: string
+                            maxLength: 63
+                            pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
                           description: |-
                             Map of string keys and values that can be used to organize and categorize
                             (scope and select) objects. May match selectors of replication controllers
                             and services.
                             More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels
                           type: object
+                          maxProperties: 100
+                          x-kubernetes-validations:
+                            - message: label domain "kubernetes.io" is restricted
+                              rule: self.all(x, x in ["beta.kubernetes.io/instance-type", "failure-domain.beta.kubernetes.io/region",  "beta.kubernetes.io/os", "beta.kubernetes.io/arch", "failure-domain.beta.kubernetes.io/zone", "topology.kubernetes.io/zone", "topology.kubernetes.io/region", "kubernetes.io/arch", "kubernetes.io/os", "node.kubernetes.io/windows-build"] || x.find("^([^/]+)").endsWith("node.kubernetes.io") || x.find("^([^/]+)").endsWith("node-restriction.kubernetes.io") || !x.find("^([^/]+)").endsWith("kubernetes.io"))
+                            - message: label domain "k8s.io" is restricted
+                              rule: self.all(x, x.find("^([^/]+)").endsWith("kops.k8s.io") || !x.find("^([^/]+)").endsWith("k8s.io"))
+                            - message: label domain "karpenter.sh" is restricted
+                              rule: self.all(x, x in ["karpenter.sh/capacity-type", "karpenter.sh/nodepool"] || !x.find("^([^/]+)").endsWith("karpenter.sh"))
+                            - message: label "karpenter.sh/nodepool" is restricted
+                              rule: self.all(x, x != "karpenter.sh/nodepool")
+                            - message: label "kubernetes.io/hostname" is restricted
+                              rule: self.all(x, x != "kubernetes.io/hostname")
                       type: object
                     spec:
                       description: NodeClaimSpec describes the desired state of the NodeClaim
@@ -717,6 +716,7 @@ spec:
                             evictionHard:
                               additionalProperties:
                                 type: string
+                                pattern: ^((\d{1,2}(\.\d{1,2})?|100(\.0{1,2})?)%||(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?)$
                               description: EvictionHard is the map of signal names to quantities that define hard eviction thresholds
                               type: object
                               x-kubernetes-validations:
@@ -731,6 +731,7 @@ spec:
                             evictionSoft:
                               additionalProperties:
                                 type: string
+                                pattern: ^((\d{1,2}(\.\d{1,2})?|100(\.0{1,2})?)%||(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?)$
                               description: EvictionSoft is the map of signal names to quantities that define soft eviction thresholds
                               type: object
                               x-kubernetes-validations:
@@ -768,6 +769,7 @@ spec:
                             kubeReserved:
                               additionalProperties:
                                 type: string
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                               description: KubeReserved contains resources reserved for Kubernetes system components.
                               type: object
                               x-kubernetes-validations:
@@ -793,6 +795,7 @@ spec:
                             systemReserved:
                               additionalProperties:
                                 type: string
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                               description: SystemReserved contains resources reserved for OS system daemons and kernel memory.
                               type: object
                               x-kubernetes-validations:
@@ -833,6 +836,19 @@ spec:
                               key:
                                 description: The label key that the selector applies to.
                                 type: string
+                                maxLength: 316
+                                pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*(\/))?([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$
+                                x-kubernetes-validations:
+                                  - message: label domain "kubernetes.io" is restricted
+                                    rule: self in ["beta.kubernetes.io/instance-type", "failure-domain.beta.kubernetes.io/region", "beta.kubernetes.io/os", "beta.kubernetes.io/arch", "failure-domain.beta.kubernetes.io/zone", "topology.kubernetes.io/zone", "topology.kubernetes.io/region", "node.kubernetes.io/instance-type", "kubernetes.io/arch", "kubernetes.io/os", "node.kubernetes.io/windows-build"] || self.find("^([^/]+)").endsWith("node.kubernetes.io") || self.find("^([^/]+)").endsWith("node-restriction.kubernetes.io") || !self.find("^([^/]+)").endsWith("kubernetes.io")
+                                  - message: label domain "k8s.io" is restricted
+                                    rule: self.find("^([^/]+)").endsWith("kops.k8s.io") || !self.find("^([^/]+)").endsWith("k8s.io")
+                                  - message: label domain "karpenter.sh" is restricted
+                                    rule: self in ["karpenter.sh/capacity-type", "karpenter.sh/nodepool"] || !self.find("^([^/]+)").endsWith("karpenter.sh")
+                                  - message: label "karpenter.sh/nodepool" is restricted
+                                    rule: self != "karpenter.sh/nodepool"
+                                  - message: label "kubernetes.io/hostname" is restricted
+                                    rule: self != "kubernetes.io/hostname"
                               minValues:
                                 description: |-
                                   This field is ALPHA and can be dropped or replaced at any time
@@ -845,6 +861,13 @@ spec:
                                   Represents a key's relationship to a set of values.
                                   Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
                                 type: string
+                                enum:
+                                  - In
+                                  - NotIn
+                                  - Exists
+                                  - DoesNotExist
+                                  - Gt
+                                  - Lt
                               values:
                                 description: |-
                                   An array of string values. If the operator is In or NotIn,
@@ -856,6 +879,8 @@ spec:
                                   type: string
                                 type: array
                                 x-kubernetes-list-type: atomic
+                                maxLength: 63
+                                pattern: ^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$
                             required:
                               - key
                               - operator
@@ -882,6 +907,7 @@ spec:
                               description: Requests describes the minimum required resources for the NodeClaim to launch
                               type: object
                           type: object
+                          maxProperties: 0
                         startupTaints:
                           description: |-
                             StartupTaints are taints that are applied to nodes upon startup which are expected to be removed automatically
@@ -899,9 +925,15 @@ spec:
                                   that do not tolerate the taint.
                                   Valid effects are NoSchedule, PreferNoSchedule and NoExecute.
                                 type: string
+                                enum:
+                                  - NoSchedule
+                                  - PreferNoSchedule
+                                  - NoExecute
                               key:
                                 description: Required. The taint key to be applied to a node.
                                 type: string
+                                minLength: 1
+                                pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*(\/))?([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$
                               timeAdded:
                                 description: |-
                                   TimeAdded represents the time at which the taint was added.
@@ -911,6 +943,7 @@ spec:
                               value:
                                 description: The taint value corresponding to the taint key.
                                 type: string
+                                pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*(\/))?([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$
                             required:
                               - effect
                               - key
@@ -929,9 +962,15 @@ spec:
                                   that do not tolerate the taint.
                                   Valid effects are NoSchedule, PreferNoSchedule and NoExecute.
                                 type: string
+                                enum:
+                                  - NoSchedule
+                                  - PreferNoSchedule
+                                  - NoExecute
                               key:
                                 description: Required. The taint key to be applied to a node.
                                 type: string
+                                minLength: 1
+                                pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*(\/))?([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$
                               timeAdded:
                                 description: |-
                                   TimeAdded represents the time at which the taint was added.
@@ -941,6 +980,7 @@ spec:
                               value:
                                 description: The taint value corresponding to the taint key.
                                 type: string
+                                pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*(\/))?([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$
                             required:
                               - effect
                               - key

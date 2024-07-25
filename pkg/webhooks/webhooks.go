@@ -24,7 +24,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/awslabs/operatorpkg/object"
 	"github.com/samber/lo"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -56,7 +55,7 @@ const component = "webhook"
 
 var (
 	ConversionResource = map[schema.GroupKind]conversion.GroupKindConversion{
-		object.GVK(&v1beta1.NodePool{}).GroupKind(): {
+		v1beta1.SchemeGroupVersion.WithKind("NodePool").GroupKind(): {
 			DefinitionName: "nodepools.karpenter.sh",
 			HubVersion:     "v1",
 			Zygotes: map[string]conversion.ConvertibleObject{
@@ -64,7 +63,7 @@ var (
 				"v1beta1": &v1beta1.NodePool{},
 			},
 		},
-		object.GVK(&v1beta1.NodeClaim{}).GroupKind(): {
+		v1beta1.SchemeGroupVersion.WithKind("NodeClaim").GroupKind(): {
 			DefinitionName: "nodeclaims.karpenter.sh",
 			HubVersion:     "v1",
 			Zygotes: map[string]conversion.ConvertibleObject{

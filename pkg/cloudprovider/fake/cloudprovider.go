@@ -64,6 +64,13 @@ func NewCloudProvider() *CloudProvider {
 		CreatedNodeClaims:        map[string]*v1beta1.NodeClaim{},
 		InstanceTypesForNodePool: map[string][]*cloudprovider.InstanceType{},
 		ErrorsForNodePool:        map[string]error{},
+		NodeClassGroupVersionKind: []schema.GroupVersionKind{
+			{
+				Group:   "test-group",
+				Version: "test-version",
+				Kind:    "test-kind",
+			},
+		},
 	}
 }
 
@@ -83,9 +90,9 @@ func (c *CloudProvider) Reset() {
 	c.Drifted = "drifted"
 	c.NodeClassGroupVersionKind = []schema.GroupVersionKind{
 		{
-			Group:   "",
-			Version: "",
-			Kind:    "",
+			Group:   "testGroup",
+			Version: "testVersion",
+			Kind:    "testKind",
 		},
 	}
 }

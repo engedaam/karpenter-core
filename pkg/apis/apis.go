@@ -20,16 +20,12 @@ import (
 	_ "embed"
 
 	"github.com/samber/lo"
-	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	appsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	v1 "sigs.k8s.io/karpenter/pkg/apis/v1"
 	"sigs.k8s.io/karpenter/pkg/apis/v1beta1"
 	"sigs.k8s.io/karpenter/pkg/utils/functional"
-)
-
-const (
-	Group              = "karpenter.sh"
-	CompatibilityGroup = "compatibility." + Group
 )
 
 var (
@@ -48,8 +44,8 @@ var (
 	NodePoolCRD []byte
 	//go:embed crds/karpenter.sh_nodeclaims.yaml
 	NodeClaimCRD []byte
-	CRDs         = []*v1.CustomResourceDefinition{
-		lo.Must(functional.Unmarshal[v1.CustomResourceDefinition](NodePoolCRD)),
-		lo.Must(functional.Unmarshal[v1.CustomResourceDefinition](NodeClaimCRD)),
+	CRDs         = []*appsv1.CustomResourceDefinition{
+		lo.Must(functional.Unmarshal[appsv1.CustomResourceDefinition](NodePoolCRD)),
+		lo.Must(functional.Unmarshal[appsv1.CustomResourceDefinition](NodeClaimCRD)),
 	}
 )

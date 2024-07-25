@@ -18,15 +18,13 @@ package v1
 
 import (
 	v1 "k8s.io/api/core/v1"
-
-	"sigs.k8s.io/karpenter/pkg/apis"
 )
 
 // Karpenter specific taints
 const (
-	DisruptionTaintKey             = apis.Group + "/disruption"
+	DisruptionTaintKey             = Group + "/disruption"
 	DisruptingNoScheduleTaintValue = "disrupting"
-	UnregisteredTaintKey           = apis.Group + "/unregistered"
+	UnregisteredTaintKey           = Group + "/unregistered"
 )
 
 var (

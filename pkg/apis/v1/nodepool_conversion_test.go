@@ -40,6 +40,7 @@ var _ = Describe("Convert V1 to V1beta1 NodePool API", func() {
 
 	BeforeEach(func() {
 		v1nodepool = &NodePool{
+			ObjectMeta: test.ObjectMeta(),
 			Spec: NodePoolSpec{
 				Template: NodeClaimTemplate{
 					Spec: NodeClaimSpec{
@@ -48,11 +49,13 @@ var _ = Describe("Convert V1 to V1beta1 NodePool API", func() {
 							Kind:  "test",
 							Group: "test",
 						},
+						Requirements: []NodeSelectorRequirementWithMinValues{},
 					},
 				},
 			},
 		}
 		v1beta1nodepool = &v1beta1.NodePool{
+			ObjectMeta: test.ObjectMeta(),
 			Spec: v1beta1.NodePoolSpec{
 				Template: v1beta1.NodeClaimTemplate{
 					Spec: v1beta1.NodeClaimSpec{
@@ -61,12 +64,14 @@ var _ = Describe("Convert V1 to V1beta1 NodePool API", func() {
 							Kind:       "test",
 							APIVersion: "group/test",
 						},
+						Requirements: []v1beta1.NodeSelectorRequirementWithMinValues{},
 					},
 				},
 			},
 		}
 		cloudProvider.NodeClassGroupVersionKind = cloudProvider.GetSupportedNodeClasses()
 		ctx = injection.WithNodeClasses(ctx, cloudProvider.GetSupportedNodeClasses())
+		ctx = injection.WithClient(ctx, env.Client)
 	})
 
 	It("should convert v1 nodepool metadata", func() {

@@ -24,7 +24,7 @@ import (
 
 const (
 	Group              = "karpenter.sh"
-	CompatabilityGroup = "compatibility." + Group
+	CompatibilityGroup = "compatibility." + Group
 )
 
 var (

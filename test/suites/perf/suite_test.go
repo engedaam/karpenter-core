@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	"sigs.k8s.io/karpenter/kwok/apis"
 	"sigs.k8s.io/karpenter/kwok/apis/v1alpha1"
 	v1 "sigs.k8s.io/karpenter/pkg/apis/v1"
 	"sigs.k8s.io/karpenter/pkg/test"
@@ -64,13 +65,15 @@ var _ = BeforeEach(func() {
 	env.BeforeEach()
 	nodeClass = env.DefaultNodeClass.DeepCopy()
 	nodePool = env.DefaultNodePool(nodeClass)
-	test.ReplaceRequirements(nodePool, v1.NodeSelectorRequirementWithMinValues{
-		NodeSelectorRequirement: corev1.NodeSelectorRequirement{
-			Key:      v1alpha1.InstanceSizeLabelKey,
-			Operator: corev1.NodeSelectorOpLt,
-			Values:   []string{"32"},
-		},
-	})
+	if nodePool.Spec.Template.Spec.NodeClassRef.Group == apis.Group {
+		test.ReplaceRequirements(nodePool, v1.NodeSelectorRequirementWithMinValues{
+			NodeSelectorRequirement: corev1.NodeSelectorRequirement{
+				Key:      v1alpha1.InstanceSizeLabelKey,
+				Operator: corev1.NodeSelectorOpLt,
+				Values:   []string{"32"},
+			},
+		})
+	}
 	// no limits!!! to the moon!!!
 	nodePool.Spec.Limits = v1.Limits{}
 	nodePool.Spec.Disruption.Budgets = []v1.Budget{{Nodes: "100%"}}

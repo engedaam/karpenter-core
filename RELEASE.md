@@ -22,7 +22,7 @@ For a **MAJOR**, **MINOR**, or **RC** release:
 - Push the tag to upstream using `git push upstream v<major>.<minor>.<patch>`
 - This tag will kick-off the [Release Workflow](https://github.com/kubernetes-sigs/karpenter/actions/workflows/release.yaml) which will auto-generate release notes into the repo's [Github releases](https://github.com/kubernetes-sigs/karpenter/releases).
 
-For a **PATCH** release:
+For a **PATCH** release
 - Create a new branch in the upstream repo similar to `release-v<major>.<minor>.x` that's checked out from the latest released tag from `HEAD` on `v<major>.<minor>` if one doesn't already exist.
 - Create a branch in your fork (origin) repo similar to `<githubuser>/release-v<major>.<minor>.<patch>`. Use the new branch
   in the upcoming steps.

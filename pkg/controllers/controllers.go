@@ -100,7 +100,6 @@ func NewControllers(
 		nodeclaimdisruption.NewController(clock, kubeClient, cloudProvider),
 		nodeclaimhydration.NewController(kubeClient, cloudProvider),
 		nodehydration.NewController(kubeClient, cloudProvider),
-		nodeoverlayvalidation.NewController(kubeClient),
 		status.NewController[*v1.NodeClaim](
 			kubeClient,
 			mgr.GetEventRecorderFor("karpenter"),
@@ -125,6 +124,10 @@ func NewControllers(
 	// The cloud provider must define status conditions for the node repair controller to use to detect unhealthy nodes
 	if len(cloudProvider.RepairPolicies()) != 0 && options.FromContext(ctx).FeatureGates.NodeRepair {
 		controllers = append(controllers, health.NewController(kubeClient, cloudProvider, clock, recorder))
+	}
+
+	if options.FromContext(ctx).FeatureGates.NodeOverlay {
+		controllers = append(controllers, nodeoverlayvalidation.NewController(kubeClient, cloudProvider))
 	}
 
 	return controllers

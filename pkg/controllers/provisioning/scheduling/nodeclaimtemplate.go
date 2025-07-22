@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	v1 "sigs.k8s.io/karpenter/pkg/apis/v1"
+	"sigs.k8s.io/karpenter/pkg/apis/v1alpha1"
 	"sigs.k8s.io/karpenter/pkg/cloudprovider"
 	"sigs.k8s.io/karpenter/pkg/scheduling"
 )
@@ -76,9 +77,18 @@ func NewNodeClaimTemplate(nodePool *v1.NodePool) *NodeClaimTemplate {
 func (i *NodeClaimTemplate) ToNodeClaim() *v1.NodeClaim {
 	// Order the instance types by price and only take the first 100 of them to decrease the instance type size in the requirements
 	instanceTypes := lo.Slice(i.InstanceTypeOptions.OrderByPrice(i.Requirements), 0, MaxInstanceTypes)
+	_, found := lo.Find(instanceTypes, func(it *cloudprovider.InstanceType) bool {
+		return it.IsPricingOverlayApplied()
+	})
 	i.Requirements.Add(scheduling.NewRequirementWithFlexibility(corev1.LabelInstanceTypeStable, corev1.NodeSelectorOpIn, i.Requirements.Get(corev1.LabelInstanceTypeStable).MinValues, lo.Map(instanceTypes, func(i *cloudprovider.InstanceType, _ int) string {
 		return i.Name
 	})...))
+
+	if found {
+		i.Annotations = lo.Assign(i.Annotations, map[string]string{
+			v1alpha1.PriceOverlayAppliedAnnotationKey: "true",
+		})
+	}
 
 	nc := &v1.NodeClaim{
 		ObjectMeta: metav1.ObjectMeta{
